@@ -1,0 +1,23 @@
+{
+  "optimizer": {
+    "enabled": true,
+    "runs": 10
+  },
+  "outputSelection": {
+    "*": {
+      "*": [
+        "evm.bytecode",
+        "evm.deployedBytecode",
+        "devdoc",
+        "userdoc",
+        "metadata",
+        "abi"
+      ]
+    }
+  },
+  "libraries": {
+    "contracts/libraries/SmartRouterHelper.sol": {
+      "SmartRouterHelper": "0xdaecee3c08e953bd5f89a5cc90ac560413d709e3"
+    }
+  }
+}
