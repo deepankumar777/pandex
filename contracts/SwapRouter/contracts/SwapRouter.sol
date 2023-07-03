@@ -17,6 +17,7 @@ import './libraries/Path.sol';
 import '@pancakeswap/v3-periphery/contracts/libraries/PoolAddress.sol';
 import './libraries/CallbackValidation.sol';
 import './interfaces/external/IWETH9.sol';
+import 'hardhat/console.sol';
 
 /// @title Pancake V3 Swap Router
 /// @notice Router for stateless execution of swaps against Pancake V3
@@ -60,6 +61,11 @@ contract SwapRouter is
         int256 amount1Delta,
         bytes calldata _data
     ) external override {
+        console.log("A0D");
+        console.logInt(amount0Delta);
+        console.log("A1D");
+        console.logInt(amount1Delta);
+
         require(amount0Delta > 0 || amount1Delta > 0); // swaps entirely within 0-liquidity regions are not supported
         SwapCallbackData memory data = abi.decode(_data, (SwapCallbackData));
         (address tokenIn, address tokenOut, uint24 fee) = data.path.decodeFirstPool();
@@ -91,11 +97,16 @@ contract SwapRouter is
         uint160 sqrtPriceLimitX96,
         SwapCallbackData memory data
     ) private returns (uint256 amountOut) {
+        console.log("working");
+        console.log(amountIn);
+        //console.logBytes(data.path);
         // allow swapping to the router address with address 0
         if (recipient == address(0)) recipient = address(this);
-
+        console.logBytes(data.path);
         (address tokenIn, address tokenOut, uint24 fee) = data.path.decodeFirstPool();
-
+        console.log("TI",tokenIn);
+        console.log("TO",tokenOut);
+        console.log("fee",fee);
         bool zeroForOne = tokenIn < tokenOut;
 
         (int256 amount0, int256 amount1) =
@@ -126,6 +137,7 @@ contract SwapRouter is
             params.sqrtPriceLimitX96,
             SwapCallbackData({path: abi.encodePacked(params.tokenIn, params.fee, params.tokenOut), payer: msg.sender})
         );
+        console.log("ExactInputsingle",amountOut);
         require(amountOut >= params.amountOutMinimum, 'Too little received');
     }
 
@@ -137,11 +149,13 @@ contract SwapRouter is
         checkDeadline(params.deadline)
         returns (uint256 amountOut)
     {
+        console.logBytes(params.path);
         address payer = msg.sender; // msg.sender pays for the first hop
 
         while (true) {
+            console.log("inside while");
             bool hasMultiplePools = params.path.hasMultiplePools();
-
+            console.logBytes(params.path.getFirstPool());
             // the outputs of prior swaps become the inputs to subsequent ones
             params.amountIn = exactInputInternal(
                 params.amountIn,
@@ -155,9 +169,11 @@ contract SwapRouter is
 
             // decide whether to continue or terminate
             if (hasMultiplePools) {
+                console.log("hasmultiple");
                 payer = address(this); // at this point, the caller has paid
                 params.path = params.path.skipToken();
             } else {
+                console.log("no multiple");
                 amountOut = params.amountIn;
                 break;
             }
@@ -215,6 +231,8 @@ contract SwapRouter is
             params.sqrtPriceLimitX96,
             SwapCallbackData({path: abi.encodePacked(params.tokenOut, params.fee, params.tokenIn), payer: msg.sender})
         );
+
+        console.log("Exactoutputsingle",amountIn);
 
         require(amountIn <= params.amountInMaximum, 'Too much requested');
         // has to be reset even though we don't use it in the single hop case

@@ -135,7 +135,7 @@ contract PancakeV3Pool is IPancakeV3Pool {
 
         maxLiquidityPerTick = Tick.tickSpacingToMaxLiquidityPerTick(_tickSpacing);
     }
-
+    //hi
     /// @dev Common checks for valid tick inputs.
     function checkTicks(int24 tickLower, int24 tickUpper) private pure {
         require(tickLower < tickUpper, 'TLU');
@@ -631,6 +631,12 @@ contract PancakeV3Pool is IPancakeV3Pool {
         uint160 sqrtPriceLimitX96,
         bytes calldata data
     ) external override returns (int256 amount0, int256 amount1) {
+
+        console.log(recipient);
+        console.log(zeroForOne);
+        console.logInt(amountSpecified);
+        console.log(sqrtPriceLimitX96);
+        console.logBytes(data);
         require(amountSpecified != 0, 'AS');
 
         Slot0 memory slot0Start = slot0;
@@ -670,6 +676,18 @@ contract PancakeV3Pool is IPancakeV3Pool {
             liquidity: cache.liquidityStart
         });
 
+        console.log("amountspecificremaining");
+        console.logInt(state.amountSpecifiedRemaining);
+        console.log("sqrtprice");
+        console.log(state.sqrtPriceX96);
+        console.log("tick");
+        console.logInt(state.tick);
+        console.log("FGG");
+        console.log(state.feeGrowthGlobalX128);
+        console.log("liquidity");
+        console.log(state.liquidity);
+        
+        
         // continue swapping as long as we haven't used the entire input/output and haven't reached the price limit
         while (state.amountSpecifiedRemaining != 0 && state.sqrtPriceX96 != sqrtPriceLimitX96) {
             StepComputations memory step;
@@ -681,6 +699,14 @@ contract PancakeV3Pool is IPancakeV3Pool {
                 tickSpacing,
                 zeroForOne
             );
+            // console.log("StepTicknext");
+            // console.logInt(step.tickNext);
+            // console.log("stepinitialised");
+            // console.log(step.initialized);
+            // console.log("tickmathmintick");
+            // console.logInt(TickMath.MIN_TICK);
+            // console.log("tickmathmaxtick");
+            // console.logInt(TickMath.MAX_TICK);
 
             // ensure that we do not overshoot the min/max tick, as the tick bitmap is not aware of these bounds
             if (step.tickNext < TickMath.MIN_TICK) {
@@ -691,6 +717,8 @@ contract PancakeV3Pool is IPancakeV3Pool {
 
             // get the price for the next tick
             step.sqrtPriceNextX96 = TickMath.getSqrtRatioAtTick(step.tickNext);
+            console.log("step.sqrtpricenext96");
+            console.logInt(step.sqrtPriceNextX96);
 
             // compute values to swap to the target tick, price limit, or point where input/output amount is exhausted
             (state.sqrtPriceX96, step.amountIn, step.amountOut, step.feeAmount) = SwapMath.computeSwapStep(
@@ -702,22 +730,31 @@ contract PancakeV3Pool is IPancakeV3Pool {
                 state.amountSpecifiedRemaining,
                 fee
             );
+            // console.log("statesqrtprice",state.sqrtPriceX96);
+            // console.log("StepAI",step.amountIn);
+            // console.log("StepAO",step.amountOut);
+            // console.log("StepFee",step.feeAmount);
 
             if (exactInput) {
                 state.amountSpecifiedRemaining -= (step.amountIn + step.feeAmount).toInt256();
                 state.amountCalculated = state.amountCalculated.sub(step.amountOut.toInt256());
+                console.log("Exactip");
+                console.logInt(state.amountSpecifiedRemaining);
+                console.logInt(state.amountCalculated);
             } else {
                 state.amountSpecifiedRemaining += step.amountOut.toInt256();
                 state.amountCalculated = state.amountCalculated.add((step.amountIn + step.feeAmount).toInt256());
             }
-
+            console.log("cache.feeprotocol");
+            console.log(cache.feeProtocol);
             // if the protocol fee is on, calculate how much is owed, decrement feeAmount, and increment protocolFee
             if (cache.feeProtocol > 0) {
                 uint256 delta = (step.feeAmount.mul(cache.feeProtocol)) / PROTOCOL_FEE_DENOMINATOR;
                 step.feeAmount -= delta;
                 state.protocolFee += uint128(delta);
             }
-
+            console.log("state.liq");
+            console.log(state.liquidity);
             // update global fee tracker
             if (state.liquidity > 0)
                 state.feeGrowthGlobalX128 += FullMath.mulDiv(step.feeAmount, FixedPoint128.Q128, state.liquidity);
@@ -763,8 +800,13 @@ contract PancakeV3Pool is IPancakeV3Pool {
             } else if (state.sqrtPriceX96 != step.sqrtPriceStartX96) {
                 // recompute unless we're on a lower tick boundary (i.e. already transitioned ticks), and haven't moved
                 state.tick = TickMath.getTickAtSqrtRatio(state.sqrtPriceX96);
-            }
+            }           
         }
+    
+        console.log("after while");
+        console.logInt(state.amountSpecifiedRemaining);
+        console.logInt(state.sqrtPriceX96);
+
 
         // update tick and write an oracle entry if the tick change
         if (state.tick != slot0Start.tick) {
@@ -808,6 +850,9 @@ contract PancakeV3Pool is IPancakeV3Pool {
         (amount0, amount1) = zeroForOne == exactInput
             ? (amountSpecified - state.amountSpecifiedRemaining, state.amountCalculated)
             : (state.amountCalculated, amountSpecified - state.amountSpecifiedRemaining);
+            console.log("Amount0 and amount1"); 
+        console.logInt(amount0);
+        console.logInt(amount1);
 
         // do the transfers and collect payment
         if (zeroForOne) {

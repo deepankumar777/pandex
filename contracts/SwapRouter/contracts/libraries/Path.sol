@@ -2,6 +2,7 @@
 pragma solidity >=0.6.0;
 
 import './BytesLib.sol';
+import 'hardhat/console.sol';
 
 /// @title Functions for manipulating path data for multihop swaps
 library Path {
@@ -56,7 +57,8 @@ library Path {
     /// @notice Gets the segment corresponding to the first pool in the path
     /// @param path The bytes encoded swap path
     /// @return The segment containing all data necessary to target the first pool in the path
-    function getFirstPool(bytes memory path) internal pure returns (bytes memory) {
+    function getFirstPool(bytes memory path) internal view returns (bytes memory) {
+        console.log("pop",POP_OFFSET);
         return path.slice(0, POP_OFFSET);
     }
 
